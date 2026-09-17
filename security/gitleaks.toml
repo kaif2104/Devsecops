@@ -1,0 +1,23 @@
+title = "Enterprise Secret Scanning Policy"
+
+[allowlist]
+description = "Ignore dependencies, build artifacts, and vendor files"
+paths = [
+    '''node_modules''',
+    '''bin/''',
+    '''obj/''',
+    '''build/''',
+    '''\.git'''
+]
+
+[[rules]]
+id = "generic-api-key"
+description = "Detected an API Key / Secret Token"
+regex = '''(?i)(api_key|apikey|secret|password|db_pass|aws_secret)[\s]*[=:][\s]*['"][a-zA-Z0-9_\-]{8,}['"]'''
+tags = ["key", "credentials"]
+
+[[rules]]
+id = "postgres-password-leak"
+description = "Hardcoded PostgreSQL connection string credentials"
+regex = '''(?i)Server=.*;Database=.*;User Id=.*;Password=.+;'''
+tags = ["database", "credentials"]
