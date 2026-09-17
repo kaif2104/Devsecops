@@ -32,9 +32,9 @@ pipeline {
         stage('Database Pre-flight Check') {
             steps {
                 echo ">> [4/10] Probing PostgreSQL health on ${WEB_SERVER_IP}:5432..."
-                sshagent(credentials: ["${SSH_CREDENTIALS_ID}"]) {
+                withCredentials([sshUserPrivateKey(credentialsId: "${SSH_CREDENTIALS_ID}", keyFileVariable: 'SSH_KEY')]) {
                     sh """
-                        ssh -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "pg_isready -h localhost -p 5432" || {
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "pg_isready -h localhost -p 5432" || {
                             echo ">> [CRITICAL] PostgreSQL is UNAVAILABLE! Aborting pipeline."
                             exit 1
                         }
@@ -53,9 +53,9 @@ pipeline {
         stage('Pre-Deployment Backup') {
             steps {
                 echo ">> [6/10] Executing pre-deployment PostgreSQL backup on ${WEB_SERVER_IP}..."
-                sshagent(credentials: ["${SSH_CREDENTIALS_ID}"]) {
+                withCredentials([sshUserPrivateKey(credentialsId: "${SSH_CREDENTIALS_ID}", keyFileVariable: 'SSH_KEY')]) {
                     sh """
-                        ssh -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "DB_HOST=localhost DB_PASSWORD=postgres /home/ubuntu/database/backup/db-backup.sh"
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "DB_HOST=localhost DB_PASSWORD=postgres /home/ubuntu/database/backup/db-backup.sh"
                     """
                 }
             }
@@ -64,9 +64,9 @@ pipeline {
         stage('Database Migration') {
             steps {
                 echo ">> [7/10] Applying database schema migrations on ${WEB_SERVER_IP}..."
-                sshagent(credentials: ["${SSH_CREDENTIALS_ID}"]) {
+                withCredentials([sshUserPrivateKey(credentialsId: "${SSH_CREDENTIALS_ID}", keyFileVariable: 'SSH_KEY')]) {
                     sh """
-                        ssh -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "DB_HOST=localhost DB_PASSWORD=postgres /home/ubuntu/database/migrations/migrate.sh"
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "DB_HOST=localhost DB_PASSWORD=postgres /home/ubuntu/database/migrations/migrate.sh"
                     """
                 }
             }
@@ -76,9 +76,9 @@ pipeline {
             steps {
                 script {
                     echo '>> [8/10] Deploying build to inactive Blue/Green slot...'
-                    sshagent(credentials: ["${SSH_CREDENTIALS_ID}"]) {
+                    withCredentials([sshUserPrivateKey(credentialsId: "${SSH_CREDENTIALS_ID}", keyFileVariable: 'SSH_KEY')]) {
                         def activeEnv = sh(
-                            script: "ssh -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} 'cat /var/www/active_env.txt 2>/dev/null | grep -o \"blue\\|green\" || echo \"blue\"'",
+                            script: "ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} 'cat /var/www/active_env.txt 2>/dev/null | grep -o \"blue\\|green\" || echo \"blue\"'",
                             returnStdout: true
                         ).trim()
 
@@ -88,8 +88,8 @@ pipeline {
                         echo "Active: ${activeEnv} | Target Deployment Slot: ${targetEnv} (Port ${targetPort})"
 
                         sh """
-                            scp -o StrictHostKeyChecking=no -r ./build-output/backend/* ${WEB_SERVER_USER}@${WEB_SERVER_IP}:/var/www/${targetEnv}/
-                            ssh -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "sudo systemctl restart productapi-${targetEnv}"
+                            scp -i ${SSH_KEY} -o StrictHostKeyChecking=no -r ./build-output/backend/* ${WEB_SERVER_USER}@${WEB_SERVER_IP}:/var/www/${targetEnv}/
+                            ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "sudo systemctl restart productapi-${targetEnv}"
                         """
 
                         env.TARGET_ENV = targetEnv
@@ -104,16 +104,16 @@ pipeline {
             steps {
                 script {
                     echo ">> [9/10] Probing target environment (${env.TARGET_ENV} on Port ${env.TARGET_PORT})..."
-                    sshagent(credentials: ["${SSH_CREDENTIALS_ID}"]) {
+                    withCredentials([sshUserPrivateKey(credentialsId: "${SSH_CREDENTIALS_ID}", keyFileVariable: 'SSH_KEY')]) {
                         try {
                             sh """
-                                ssh -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "/usr/local/bin/monitoring/health-check.sh http://127.0.0.1:${env.TARGET_PORT}/health"
+                                ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "/usr/local/bin/monitoring/health-check.sh http://127.0.0.1:${env.TARGET_PORT}/health"
                             """
                             echo ">> [HEALTH PASSED] Target ${env.TARGET_ENV} verified healthy!"
                         } catch (Exception e) {
                             echo ">> [HEALTH FAILED] Target ${env.TARGET_ENV} probe failed! Initiating Rollback..."
                             sh """
-                                ssh -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "sudo /usr/local/bin/switch-traffic.sh ${env.ACTIVE_ENV}"
+                                ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "sudo /usr/local/bin/switch-traffic.sh ${env.ACTIVE_ENV}"
                             """
                             error("Deployment halted: ${env.TARGET_ENV} failed health probe. Traffic retained on ${env.ACTIVE_ENV}.")
                         }
@@ -125,9 +125,9 @@ pipeline {
         stage('Traffic Switch') {
             steps {
                 echo ">> [10/10] Switching live production traffic to ${env.TARGET_ENV}..."
-                sshagent(credentials: ["${SSH_CREDENTIALS_ID}"]) {
+                withCredentials([sshUserPrivateKey(credentialsId: "${SSH_CREDENTIALS_ID}", keyFileVariable: 'SSH_KEY')]) {
                     sh """
-                        ssh -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "sudo /usr/local/bin/switch-traffic.sh ${env.TARGET_ENV}"
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "sudo /usr/local/bin/switch-traffic.sh ${env.TARGET_ENV}"
                     """
                 }
             }
