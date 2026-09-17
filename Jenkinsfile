@@ -82,7 +82,8 @@ pipeline {
 
                     sh """
                         scp -i ${SSH_KEY} -o StrictHostKeyChecking=no -r ./build-output/backend/* ${WEB_SERVER_USER}@${WEB_SERVER_IP}:/var/www/${targetEnv}/
-                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "sudo systemctl restart productapi-${targetEnv}"
+                        scp -i ${SSH_KEY} -o StrictHostKeyChecking=no -r ./frontend/productfrontend/build/* ${WEB_SERVER_USER}@${WEB_SERVER_IP}:/var/www/frontend/
+                        ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "sudo chown -R www-data:www-data /var/www/frontend && sudo chmod -R 755 /var/www/frontend && sudo systemctl restart productapi-${targetEnv}"
                     """
 
                     env.TARGET_ENV = targetEnv
