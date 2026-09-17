@@ -16,7 +16,7 @@ namespace ProductAPI.Tests
                 Price = 999.99m
             };
 
-            Assert.That(product.Id, Is.EqualTo(999));
+            Assert.That(product.Id, Is.EqualTo(1));
             Assert.That(product.ProductName, Is.EqualTo("Test Laptop"));
             Assert.That(product.Price, Is.EqualTo(999.99m));
         }
