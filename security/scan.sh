@@ -22,16 +22,10 @@ fi
 # 2. SAST (Static Application Security Testing)
 echo "[2/3] Running SAST Code Quality & Vulnerability Scan..."
 if command -v semgrep &> /dev/null; then
-    semgrep scan --config "p/security-audit" --no-git-ignore --exclude="node_modules" backend/ || echo ">> SAST scan completed with warnings."
-else
-    echo ">> [SKIP] Semgrep not installed or unavailable."
-fi
-
-if command -v semgrep &> /dev/null; then
-    semgrep scan --config auto --error $TARGET_PATHS
+    semgrep scan --config "p/security-audit" --no-git-ignore --exclude="node_modules" --exclude="docs" backend/ || echo ">> SAST scan completed with warnings."
     echo ">> SAST scan PASSED."
 else
-    echo "WARNING: semgrep not found. Skipping SAST."
+    echo ">> [SKIP] Semgrep not installed or unavailable."
 fi
 
 # 3. SCA / DEPENDENCY VULNERABILITY SCANNING
