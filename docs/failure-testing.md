@@ -11,7 +11,7 @@ To validate system resiliency under failure conditions, five explicit failure sc
 - **Verification:** Observed on Jenkins Build #5 (Status: FAILED / RED).
 
 ### Scenario 2: Hardcoded Secret / Credential Leak (Quality Gate 2)
-- **Injection:** Inserted `AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"` into `backend/appsettings.json`.
+- **Injection:** Inserted an exposed credential string into `backend/appsettings.json`.
 - **Expected Outcome:** Gitleaks flags high-entropy secret at Stage 3 (`Security Scan`). Deployment halted.
 - **Verification:** Observed on Jenkins Build #6 (Status: FAILED / RED).
 
