@@ -5,6 +5,7 @@ pipeline {
         WEB_SERVER_IP = "3.7.56.229"
         WEB_SERVER_USER = "ubuntu"
         SSH_KEY = "/var/lib/jenkins/.ssh/task.pem"
+        ADMIN_EMAIL = "mksocials21@gmail.com"
     }
 
     stages {
@@ -105,11 +106,13 @@ pipeline {
                             ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "/usr/local/bin/monitoring/health-check.sh http://127.0.0.1:${env.TARGET_PORT}/health"
                         """
                         echo ">> [HEALTH PASSED] Target ${env.TARGET_ENV} verified healthy!"
+                        env.ROLLBACK_EXECUTED = "FALSE"
                     } catch (Exception e) {
                         echo ">> [HEALTH FAILED] Target ${env.TARGET_ENV} probe failed! Initiating Rollback..."
                         sh """
                             ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${WEB_SERVER_USER}@${WEB_SERVER_IP} "sudo /usr/local/bin/switch-traffic.sh ${env.ACTIVE_ENV}"
                         """
+                        env.ROLLBACK_EXECUTED = "TRUE"
                         error("Deployment halted: ${env.TARGET_ENV} failed health probe. Traffic retained on ${env.ACTIVE_ENV}.")
                     }
                 }
@@ -127,16 +130,39 @@ pipeline {
     }
 
     post {
+        always {
+            script {
+                def commitHash = sh(script: "git rev-parse --short HEAD 2>/dev/null || echo 'N/A'", returnStdout: true).trim()
+                def branchName = sh(script: "git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'main'", returnStdout: true).trim()
+                def targetSlot = env.TARGET_ENV ?: "N/A"
+                def activeSlot = env.ACTIVE_ENV ?: "N/A"
+                def rollbackState = env.ROLLBACK_EXECUTED ?: "FALSE"
+
+                echo """
+================================================================================
+ 📢 PIPELINE NOTIFICATION SUMMARY
+================================================================================
+ • Application: ProductAPI (.NET 8 + React Frontend)
+ • Version / Commit: ${commitHash} (Branch: ${branchName})
+ • Build Number: #${env.BUILD_NUMBER}
+ • Pipeline Result: ${currentBuild.currentResult}
+ • Target Deployment Slot: ${targetSlot}
+ • Active Production Slot: ${activeSlot}
+ • Rollback Executed: ${rollbackState}
+ • Production URL: http://${WEB_SERVER_IP}
+================================================================================
+"""
+            }
+        }
         success {
-            echo "=================================================="
-            echo " SUCCESS: Blue-Green Deployment Completed!"
-            echo " Live Production URL: http://${WEB_SERVER_IP}"
-            echo "=================================================="
+            script {
+                echo "✅ [NOTIFICATION SUCCESS] Deployment completed successfully! Live URL: http://${WEB_SERVER_IP}"
+            }
         }
         failure {
-            echo "=================================================="
-            echo " FAILURE: Pipeline Quality Gate Blocked Deployment"
-            echo "=================================================="
+            script {
+                echo "❌ [NOTIFICATION ALERT] Pipeline Quality Gate Blocked Deployment! Automated Protection / Rollback Triggered."
+            }
         }
     }
 }
