@@ -1,0 +1,53 @@
+{
+  "logGroupName": "/aws/ec2/product-api/production.log",
+  "metricFilters": [
+    {
+      "filterName": "SQLInjectionDetection",
+      "filterPattern": "{ ($.message = \"*UNION*\") || ($.message = \"*SELECT*\") || ($.message = \"*OR 1=1*\") || ($.message = \"*\' OR \'\") || ($.message = \"*--*\") || ($.request_uri = \"*UNION*\") || ($.request_uri = \"*SELECT*\") || ($.request_uri = \"*1=1*\") }",
+      "metricTransformations": [
+        {
+          "metricName": "SQLInjectionCount",
+          "metricNamespace": "DevSecOps/SecurityMonitoring",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "XSSAttackDetection",
+      "filterPattern": "{ ($.message = \"*<script>*\") || ($.message = \"*javascript:*\") || ($.message = \"*onerror=*\") || ($.message = \"*onload=*\") || ($.request_uri = \"*<script>*\") || ($.request_uri = \"*javascript:*\") }",
+      "metricTransformations": [
+        {
+          "metricName": "XSSAttackCount",
+          "metricNamespace": "DevSecOps/SecurityMonitoring",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "BruteForceLoginDetection",
+      "filterPattern": "{ ($.status = 401) || ($.request_uri = \"*/api/login*\" && $.status = 403) || ($.message = \"*Failed login*\") }",
+      "metricTransformations": [
+        {
+          "metricName": "BruteForceLoginCount",
+          "metricNamespace": "DevSecOps/SecurityMonitoring",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    },
+    {
+      "filterName": "SSHAuthFailureDetection",
+      "filterPattern": "\"[SSHD] Failed password\" || \"Failed password for\" || \"Invalid user\"",
+      "metricTransformations": [
+        {
+          "metricName": "SSHAuthFailureCount",
+          "metricNamespace": "DevSecOps/SecurityMonitoring",
+          "metricValue": "1",
+          "defaultValue": 0
+        }
+      ]
+    }
+  ]
+}

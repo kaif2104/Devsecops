@@ -1,0 +1,57 @@
+{
+  "snsTopic": {
+    "topicName": "DevSecOps-Security-Alerts",
+    "subscriptionProtocol": "email",
+    "subscriptionEndpoint": "security-team@company.com"
+  },
+  "alarms": [
+    {
+      "alarmName": "DevSecOps-SQLInjection-Alarm",
+      "alarmDescription": "Triggers when SQL Injection attack patterns are detected in application logs.",
+      "metricName": "SQLInjectionCount",
+      "namespace": "DevSecOps/SecurityMonitoring",
+      "statistic": "Sum",
+      "period": 60,
+      "evaluationPeriods": 1,
+      "threshold": 1,
+      "comparisonOperator": "GreaterThanOrEqualToThreshold",
+      "treatMissingData": "notBreaching"
+    },
+    {
+      "alarmName": "DevSecOps-XSSAttack-Alarm",
+      "alarmDescription": "Triggers when Cross-Site Scripting (XSS) attack patterns are detected.",
+      "metricName": "XSSAttackCount",
+      "namespace": "DevSecOps/SecurityMonitoring",
+      "statistic": "Sum",
+      "period": 60,
+      "evaluationPeriods": 1,
+      "threshold": 1,
+      "comparisonOperator": "GreaterThanOrEqualToThreshold",
+      "treatMissingData": "notBreaching"
+    },
+    {
+      "alarmName": "DevSecOps-BruteForce-Alarm",
+      "alarmDescription": "Triggers when repeated unauthorized login attempts or brute-force patterns occur.",
+      "metricName": "BruteForceLoginCount",
+      "namespace": "DevSecOps/SecurityMonitoring",
+      "statistic": "Sum",
+      "period": 60,
+      "evaluationPeriods": 5,
+      "threshold": 10,
+      "comparisonOperator": "GreaterThanOrEqualToThreshold",
+      "treatMissingData": "notBreaching"
+    },
+    {
+      "alarmName": "DevSecOps-SSHAuthFailure-Alarm",
+      "alarmDescription": "Triggers when SSH authentication failures are detected on EC2 instances.",
+      "metricName": "SSHAuthFailureCount",
+      "namespace": "DevSecOps/SecurityMonitoring",
+      "statistic": "Sum",
+      "period": 60,
+      "evaluationPeriods": 1,
+      "threshold": 3,
+      "comparisonOperator": "GreaterThanOrEqualToThreshold",
+      "treatMissingData": "notBreaching"
+    }
+  ]
+}
